@@ -1,0 +1,121 @@
+#!/bin/sh
+function etc_backup(){
+  module_name=$1
+  ret=0  
+  target_folder="/raid/data/tmp/module/System/etc"
+  source_folder="/raid/data/tmp/tmp_backup/${module_name}/sys/etc"
+  backup_file="/raid/data/tmp/module/System/conf/backup.list"
+  cat "${backup_file}" | \
+  while read list  
+  do
+    source=`echo "${list}" | awk -F',' '{print $1}'`
+    target=`echo "${list}" | awk -F',' '{print $2}'`
+    deep_path=`echo "${target}" | awk -F'\/' '{print NF}'`
+    last_name_len=`echo "${target}" | awk -F'\/' '{print length($NF)}'`
+    last_value=`echo "${target}" | awk '{print substr($0,length($0))}'`
+    if [ "$deep_path" != "1" ];then
+      if [ "${last_value}" != "/" ];then
+        str="echo '${target}' | awk '{print substr(\$0,1,length(\$0)-$last_name_len)}'"
+      else
+        str="echo '${target}' | awk '{print \$0}'"
+      fi
+      folder_path=`eval "$str"`
+      if [ ! -e "${target_folder}/${folder_path}" ];then
+        mkdir -p "${target_folder}/${folder_path}"
+      fi
+    fi
+
+    cp -rd ${source_folder}/${source} ${target_folder}/${target}
+    ret=$?
+    if [ "$ret" != "0" ];then
+      ret=1
+    fi
+  done
+  echo $ret
+}
+
+function sys_restore(){
+  module_name=$1
+  cp -rd /raid/data/tmp/tmp_backup/${module_name}/sys/* /raid/data/module/${module_name}/sys/
+}
+
+function set_msg_log(){
+  msg=$2
+  module_name=$1
+  lang=`cat /tmp/lang`
+  tmp_log_file="/var/tmp/tmp_module/tmp_module_log.txt"
+  module_folder="/raid/data/module/${module_name}"  
+  lang_folder="${module_folder}/sys/lang/${lang}"
+  time_stamp=`date +'%Y/%m/%d %H:%M:%S'`
+  is_msg=`echo $msg | grep '[^A-Za-z0-9_]'`  
+  if [ "$is_msg" == "" ];then
+    if [ ! -d ${lang_folder} ];then
+      lang_folder="/raid/data/module/${module_name}/sys/lang/en"
+    fi
+
+    if [ ! -d ${lang_folder} ];then
+      echo "${time_stamp}: $msg" >> ${tmp_log_file}
+    else
+      if [ ! -f "${lang_folder}/msg" ];then
+        echo "${time_stamp}: $msg" >> ${tmp_log_file}
+      else
+        . ${lang_folder}/msg
+        str="echo \$${msg}"
+        msg_value=`eval "${str}"`
+
+        if [ "${msg_value}" == "" ];then
+          msg_value="${msg}"
+        fi
+
+        echo "${time_stamp}: $msg_value" >> ${tmp_log_file}
+      fi
+    fi
+  else
+    echo "${time_stamp}: $msg" >> ${tmp_log_file}
+  fi
+}
+
+function set_event(){
+  module_name="$1"
+  event_id=$2
+  level=$3 
+  email=$4
+  event_folder="/raid/data/tmp/module/System/lib/logevent"  
+  if [ ! -e "${event_folder}" ];then
+    event_folder="/raid/data/module/${module_name}/sys/lib/logevent"
+  fi
+  event="$event_folder/event"
+
+  for ((i=0;i<6;i++))
+  do
+     tmp_var="\$$(($i+5))"
+     tmp_val=`eval "echo $tmp_var"`
+     
+     if [ "${tmp_val}" != "" ];then
+        para="$para \"$tmp_val\"" 
+      else
+        break
+     fi
+  done
+  
+  if [ "${email}" == "yes" ];then
+    email="email"
+  fi
+
+  $event "$module_name" "$event_id" "$level" "$email" "$para"
+}
+
+function create_module_folder(){
+  default_root="/raid/data/_Module_Folder_"
+  folder_name=$1
+  ret=0
+  full_path="${default_root}/${folder_name}"
+  
+  if [ -e ${full_path} ];then
+    ret=1
+  else
+    mkdir "${full_path}"
+  fi
+  
+  echo $ret
+}

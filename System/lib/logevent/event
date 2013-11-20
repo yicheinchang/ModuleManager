@@ -1,0 +1,66 @@
+#!/bin/sh -x
+if [ $# -lt 1 ]; then 
+echo "Need At Least one argument : Event ID"
+exit 1
+fi
+
+module=$1
+event_id=997
+
+act_information="sh -x /raid/data/module/${module}/sys/lib/logevent/information"
+act_warning="/raid/data/module/${module}/sys/lib/logevent/warning"
+act_error="/raid/data/module/${module}/sys/lib/logevent/error"
+act_email="/raid/data/module/${module}/sys/lib/logevent/email"
+
+    #########################################################
+    #    $1=module
+    #    $2=event_message_if
+    #    $3=level
+    #    $4=email
+    #    $5=tmp1
+    #    $6=tmp2
+    #    $7=tmp3
+    #    $8=tmp4
+    #    $9=tmp5
+    #    $10=tmp6
+    #########################################################
+    . "/raid/data/module/${module}/sys/lib/logevent/event_message.sh"
+    msg=`printf "${event["$2"]}"`
+    if  [ "$5" != "" ] && [ "$6" == "" ] && [ "$7" == "" ] && [ "$8" == "" ] && [ "$9" == "" ] && [ "${10}" == "" ];
+    then
+      msg=`printf "${event["$2"]}" "$5"`
+    elif [ "$5" != "" ] && [ "$6" != "" ] && [ "$7" == "" ] && [ "$8" == "" ] && [ "$9" == "" ] && [ "${10}" == "" ];
+    then
+      msg=`printf "${event["$2"]}" "$5" "$6"`
+    elif [ "$5" != "" ] && [ "$6" != "" ] && [ "$7" != "" ] && [ "$8" == "" ] && [ "$9" == "" ] && [ "${10}" == "" ];
+    then
+      msg=`printf "${event["$2"]}" "$5" "$6" "$7"`
+    elif [ "$5" != "" ] && [ "$6" != "" ] && [ "$7" != "" ] && [ "$8" != "" ] && [ "$9" == "" ] && [ "${10}" == "" ];
+    then
+      msg=`printf "${event["$2"]}" "$5" "$6" "$7" "$8"`
+    elif [ "$5" != "" ] && [ "$6" != "" ] && [ "$7" != "" ] && [ "$8" != "" ] && [ "$9" != "" ] && [ "${10}" == "" ];
+    then
+      msg=`printf "${event["$2"]}" "$5" "$6" "$7" "$8" "$9"`
+    elif [ "$5" != "" ] && [ "$6" != "" ] && [ "$7" != "" ] && [ "$8" != "" ] && [ "$9" != "" ] && [ "${10}" != "" ];
+    then
+      msg=`printf "${event["$2"]}" "$5" "$6" "$7" "$8" "$9" "${10}"`
+    fi
+    if [ "$msg" != "" ];
+    then
+      if [ "$3" == "info" ];
+      then
+        $act_information $event_id $2 "[Module(${module})] $msg" "${module}"
+      elif [ "$3" == "warning" ];
+      then
+        $act_warning $event_id $2 "[Module(${module})] $msg" "${module}"
+      elif [ "$3" == "error" ];
+      then
+        $act_error $event_id $2 "[Module(${module})] $msg" "${module}"
+      else
+        echo "No such event function"
+      fi
+      if [ "$4" == "email" ];
+      then
+        $act_email $event_id "$2" "$3" "[Module(${module})] $msg"
+      fi
+    fi

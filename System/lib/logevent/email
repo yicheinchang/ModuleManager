@@ -1,0 +1,215 @@
+#!/bin/sh 
+if [ $# -lt 1 ];
+then
+  echo "Need At Least one argument : Event ID"
+  exit 1
+fi
+event_id=${1}
+param_1=${2}
+param_2=${3}
+param_3=${4}
+param_4=${5}
+param_5=${6}
+param_6=${7}
+param_7=${8}	#email from
+occur_time=`date "+%Y-%m-%d %H:%M:%S"`
+msmtp="/usr/bin/msmtp"
+#msmtp="/tmp/msmtp"
+
+mddisk="/dev/md1"
+mdname="md1"
+swapname="md0"
+swapdisk="/dev/md0"
+
+sqlite="/usr/bin/sqlite"
+confdb="/etc/cfg/conf.db"
+ip_addr=`/sbin/ifconfig eth0|grep "addr:"|awk '{print substr($2,RSTART+6)}'`
+model=`cat /proc/mdstat|grep $mdname|cut -d ' ' -f4`
+host_name=`hostname`
+body='From: <%s>
+To: <%s>
+Subject: %s event (%s level) occurred
+
+Hello  %s
+
+This notification message is generated automatically from %s (%s).
+The system experienced the following event(s).
+
+%s
+
+Please be aware of the event(s) above. Also if necessary, please react to the 
+event(s).
+
+==============================================
+The automated message is generated at %s by %s (%s) (%s).
+'
+
+#################################################
+##	Define procedure
+#################################################
+
+## called to retrieve sqlite notif_addr
+get_domainname() {
+  sqlcmd="select v from conf where k like 'nic1_domainname%'"
+  nicdomain=`${sqlite} ${confdb} "${sqlcmd}"`
+  if [ "$event_id" != "EmailTest" ];
+  then
+    sqlcmd="select v from conf where k='notif_from'"
+    mailfrom=`$sqlite $confdb "${sqlcmd}"`
+    if [ "$mailfrom" == "" ];
+    then
+      echo "admin@$host_name.$nicdomain"
+    else
+      echo $mailfrom
+    fi
+  else
+    if [ "$param_7" != "" ];
+    then
+      echo $param_7
+    else
+      echo "admin@$host_name.$nicdomain"
+    fi
+  fi
+}
+
+## called to retrieve sqlite notif_addr
+get_maill_addr() {
+	if [ "$event_id" != "EmailTest" ];then
+		sqlcmd="select v from conf where k like 'notif_addr%'"
+		${sqlite} ${confdb} "${sqlcmd}"
+	else
+		echo ${param_6}
+	fi
+}
+
+## called to retrieve sqlite notif_account
+get_maill_auth_id() {
+	if [ "$event_id" != "EmailTest" ];then
+		sqlcmd="select v from conf where k='notif_account'"
+		${sqlite} ${confdb} "${sqlcmd}"
+	else
+		echo ${param_4}
+	fi
+}
+
+## called to retrieve sqlite notif_password
+get_maill_auth_passwd() {
+	if [ "$event_id" != "EmailTest" ];then
+		sqlcmd="select v from conf where k='notif_password'"
+		${sqlite} ${confdb} "${sqlcmd}"
+	else
+		echo ${param_5}
+	fi
+}
+
+## called to retrieve sqlite notif_auth
+get_maill_auth_method() {
+	if [ "$event_id" != "EmailTest" ];then
+		sqlcmd="select v from conf where k='notif_auth'"
+		${sqlite} ${confdb} "${sqlcmd}"
+	else
+		echo ${param_3}
+	fi
+}
+
+## called to retrieve sqlite notif_smtp smtp mail server address
+get_maill_server() {
+	if [ "$event_id" != "EmailTest" ];then
+		sqlcmd="select v from conf where k='notif_smtp'"
+		${sqlite} ${confdb} "${sqlcmd}"
+	else
+		echo ${param_1}
+	fi
+}
+
+## called to retrieve sqlite notif_smtp smtp mail server port
+get_maill_port() {
+	if [ "$event_id" != "EmailTest" ];then
+		sqlcmd="select v from conf where k='notif_smtport'"
+		${sqlite} ${confdb} "${sqlcmd}"
+	else
+		echo ${param_2}
+	fi
+}
+
+## called to retrieve user's setting about notification
+get_notif_setting() {
+	if [ "$event_id" != "EmailTest" ];then
+        	## mail, beep
+        	if [ ! "$1" = "" ];then
+                	field=notif_"${1}"
+	                sqlcmd="select v from conf where k='${field}'"
+        	        ${sqlite} ${confdb} "${sqlcmd}"
+        	fi
+	else
+		echo 1
+	fi
+}
+
+## format mail body to send out
+mail_body() {
+  mail_from=$1
+  mail_to=$2
+  recips=$(get_maill_addr)
+  recips=`echo $recips | tr "\n" " "`
+  if [ "${model}" = "linear" ];
+  then
+    model=JBOD
+  fi
+
+  case $event_id in
+    EmailTest)
+      #test
+      level="information"
+      description="
+This is a test email sent by \"${host_name}\".
+If you received this email, that means the configuration was set up correctly.
+		"
+      printf "${body}" "${mail_from}" "${mail_to}" "Email Test" "${level}" "${recips}" "${host_name}" "${ip_addr}" "${description}" "${occur_time}" "${host_name}" "${model}" "${ip_addr}"
+      exit 0
+    ;;
+    997)
+      ##########################################
+      #    Event_ID=$event_id
+      #    Event_Message_ID=$param_1
+      #    Level=$param_2
+      #    MSG=$param_3
+      ##########################################
+      event_id_tmp=$event_id
+      event_id=${param_1}
+      level=${param_2}
+      description="${param_3}"
+    ;;
+    *)
+      exit 1
+    ;;
+  esac
+  
+  printf "${body}" "${mail_from}" "${mail_to}" "Em${event_id}E" "${level}" "${recips}" "${host_name}" "${ip_addr}" "${description}" "${occur_time}" "${host_name}" "${model}" "${ip_addr}"
+  #printf "${body}" "Em${event_id}E" "${level}" "${recips}" "${host_name}" "${ip_addr}" "${description}" "${occur_time}" "${host_name}" "${model}" "${ip_addr}"
+  event_id=${event_id_tmp}
+}
+
+setting=`get_notif_setting mail`
+if [ ${setting} -eq 1 ]; then
+	user=$(get_maill_auth_id)
+	p=$(get_maill_auth_passwd)
+	host=$(get_maill_server)
+	port=$(get_maill_port)
+	auth=""
+	if [ ! "${user}" = "" ] && [ ! "${p}" = "" ]; then
+		auth="$(get_maill_auth_method)"
+	else
+		auth="off"
+	fi
+	email_from=`get_domainname`
+	#from="$host_name@$ip_addr"
+	from=$email_from
+	recips=$(get_maill_addr)
+	for recip in ${recips}
+	do
+		if [ ! "${recip}" = "" ]; then
+			mail_body "${from}" "${recip}"| ${msmtp} --from="${from}" --host=${host} --port=${port} --auth="${auth}" --user="${user}" --password "${p}" ${recip}
+		fi
+	done
+fi

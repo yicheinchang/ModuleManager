@@ -1,0 +1,42 @@
+extends layout
+block content
+  div.jumbotron
+    div.container
+      h1 Module Manager
+      p Use the action buttons to control the installed modules
+  div.container
+    div.row
+      div(class="col-lg-12")
+        h2 Installed Modules
+        div.table-responsive
+          table(class="table table-hover")
+            thead
+              tr
+                td Module
+                td Installed location
+                td Actions
+            tbody
+              each val, index in content
+                tr
+                  td=val.name
+                  td=val.path
+                  td
+                    div.btn-group
+                      button(type="button" class="btn btn-danger") Actions
+                      button(type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown")
+                        span.caret
+                        span.sr-only Toggle Dropdown
+                      ul(class="dropdown-menu" role="menu")
+                        each act, idx in val.usage
+                          li
+                            a(class="action_button" href="#", module_path="#{val.path}" module_act="#{act}")=act
+  div(class="modal fade" id="StatusModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true")
+    div.modal-dialog
+      div.modal-content
+        div.modal-header
+          button(type="button" class="close" data-dismiss="modal" aria-hidden="true")
+          h4(class="modal-title" id="myModalLabel") Action Result
+        div.modal-body
+          p(id="modal-content")
+        div.modal-footer
+          button(type="button" class="btn btn-default" data-dismiss="modal" id="closeModal") Close

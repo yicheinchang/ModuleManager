@@ -1,0 +1,23 @@
+#!/bin/sh
+master_raid_sys=`ls -al /raid/sys | awk '{print $11}'`
+time_stamp=`date +'%Y/%m/%d %H:%M:%S'`
+host_name=`hostname`
+log_path="/raid/sys/"
+raid_ready=`/bin/mount | /bin/grep "${master_raid_sys}" | /bin/grep rw | /usr/bin/wc -l`
+if [ "$raid_ready" -eq "0" ]; then
+        log_path="/var/log/"
+else
+  if [ -f /var/log/warning ]; then
+    cat /var/log/warning >> /raid/sys/warning
+    rm -f /var/log/warning
+  fi
+  if [ -f /var/log/error ]; then
+    cat /var/log/error >> /raid/sys/error
+    rm -f /var/log/error
+  fi
+  if [ -f /var/log/information ]; then
+    cat /var/log/information >> /raid/sys/information
+    rm -f /var/log/information
+  fi
+fi
+

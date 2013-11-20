@@ -1,0 +1,61 @@
+#!/bin/sh
+OID=".1.3.6.1.4.1.9999.1"
+snmp_trap_cmd="/usr/bin/snmptrap"
+snmp_enabled=`/usr/bin/sqlite /etc/cfg/conf.db "select v from conf where k='snmp_enabled'"`
+snmp_community=`/usr/bin/sqlite /etc/cfg/conf.db "select v from conf where k='snmp_read_comm'"`
+snmp_trap_target_ip=`/usr/bin/sqlite /etc/cfg/conf.db "select v from conf where k='snmp_trap_target_ip'"`
+snmp_trap_port="162"
+open_snmpd=`/img/bin/check_service.sh netsnmp`
+
+if [ $# -lt 1 ];
+then 
+  echo "Need At Least one argument : Event ID"
+  exit 1
+fi
+
+module=$4
+. /raid/data/module/${module}/sys/lib/logevent/sysinfo
+
+event_id=$1
+err_log_path=$log_path"error"
+
+AVRPIPE="/tmp/avrpipe"
+        
+
+Usage(){
+  echo "Event : "$1
+  echo "Argument Error : "$2
+}
+
+case $event_id in
+  997)
+    event_message_id="$2"
+    error_msg="$3"
+  ;;
+  999)
+    error_msg="$2"
+  ;;
+  *)
+    echo "No Such Event ID In Error Pool"
+  ;;
+esac
+
+if [ "${error_msg}" != "" ]; then
+      echo "${time_stamp} ${host_name} : ${error_msg}" >> $err_log_path
+      ##echo message to LCM
+      #if [ ! -f $AVRPIPE ]; then mkfifo -m 666 $AVRPIPE; fi
+      #error_msg=`echo "${error_msg}"|cut -c-20`
+      #echo "error 4 ${error_msg}" > $AVRPIPE
+      
+      ###########################################################
+      #	Send trap to snmptrap target ip
+      ###########################################################
+      if [ "$event_id" == "997" ];
+      then
+        event_id="$event_message_id"
+      fi
+      if [ "$snmp_enabled" == "1" ] && [ "$snmp_community" != "" ] && [ "$snmp_trap_target_ip" != "" ] && [ "$open_snmpd" == "1" ];
+      then
+        ${snmp_trap_cmd} -v 2c -c ${snmp_community} ${snmp_trap_target_ip}:${snmp_trap_port} "" ${OID} ${OID}.${event_id} s "${error_msg}"
+      fi
+fi

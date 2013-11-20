@@ -1,0 +1,32 @@
+#!/bin/sh
+if [ $# -lt 1 ]; then 
+  echo "Need At Least one argument : Event ID"
+  exit 1
+fi
+
+module=$4
+. /raid/data/module/${module}/sys/lib/logevent/sysinfo
+
+event_id=$1
+warn_log_path=$log_path"warning"
+
+Usage(){
+  echo "Event : "$1
+  echo "Argument Error : "$2
+}
+
+case $event_id in
+  997)
+    warn_msg="$3"
+  ;;
+  999)
+    warn_msg="$2"
+  ;;
+  *)
+    echo "No Such Event ID In Warning Pool"
+  ;;
+esac
+
+if [ "${warn_msg}" != "" ]; then
+      echo "${time_stamp} ${host_name} : ${warn_msg}" >> $warn_log_path
+fi

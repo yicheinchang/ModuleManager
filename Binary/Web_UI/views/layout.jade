@@ -1,0 +1,21 @@
+doctype 5
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    link(rel='stylesheet', href='/bootstrap/css/bootstrap.min.css')
+    script(src='/jquery/jquery-1.10.2.min.js')
+    script(src='/bootstrap/js/bootstrap.min.js')
+    script(src='/javascripts/loadResult.js')
+  body(style="padding-top: 70px;")
+    div(class='navbar navbar-fixed-top navbar-inverse' role='banner')
+      div.container
+        div.navbar-header
+          a.navbar-brand(href="/") Module Manager
+        div(class="collapse navbar-collapse navbar-ex1-collapse")
+          ul(class="nav navbar-nav navbar-right")
+            li
+              a(href="/") Home
+            li
+              a(href="/about") About
+    block content

@@ -1,0 +1,9 @@
+WWW/*,www/
+Shell/*,shell/
+Binary/*,bin/
+Driver/*,drv/
+System/conf/*,sys/conf/
+System/lang/*,sys/lang/
+System/include/*,sys/include/
+System/lib/*,sys/lib/
+System/lib/*,sys/var/

@@ -1,0 +1,33 @@
+#!/bin/sh
+if [ $# -lt 1 ]; then 
+  echo "Need At Least one argument : Event ID"
+  exit 1
+fi
+
+module=$4
+. /raid/data/module/${module}/sys/lib/logevent/sysinfo
+
+event_id=$1
+info_log_path=$log_path"information"
+
+Usage(){
+  echo "Event : "$1
+  echo "Argument Error : "$2
+}
+
+case $event_id in
+  997)
+    info_msg="$3"
+  ;;
+  999)
+    #999   any message
+    info_msg="$2"
+  ;;
+  *)
+    echo "No Such Event ID In Information Pool"
+  ;;
+esac
+
+if [ "${info_msg}" != "" ]; then
+      echo "${time_stamp} ${host_name} : ${info_msg}" >> $info_log_path
+fi
