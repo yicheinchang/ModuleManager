@@ -2,7 +2,7 @@
 
 res='fail'
 
-module_name='moduleManager'
+module_name='ModuleManager'
 . /raid/data/tmp/module/System/lib/libsys
 ret=`etc_backup "$module_name"`
 
@@ -22,6 +22,10 @@ cp -rf 	/raid/data/tmp/module/System/* 			"/raid/data/module/$module_name/sys"		
 cp -rf 	/raid/data/tmp/module/WWW/*			"/raid/data/module/$module_name/www"			> /dev/null 2>&1
 cp -rf	/raid/data/tmp/module/Driver/*			"/raid/data/module/$module_name/drv"
 cp -f 	/raid/data/tmp/module/Configure/license.txt	"/raid/data/module/$module_name/COPY"			> /dev/null 2>&1
+
+chmod +x "/raid/data/module/$module_name/bin/list_modules.bash"			> /dev/null 2>&1
+
+
 
 
 set_msg_log "$module_name" "msg1"

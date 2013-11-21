@@ -28,7 +28,7 @@ fs.readFile('../LICENSE.txt', 'utf8', function(err, data) {
 var app = express();
 
 // all environments
-app.set('port', process.env.PORT || 3000);
+app.set('port', process.env.PORT || 6812);
 app.set('views', __dirname + '/views');
 app.set('view engine', 'jade');
 app.use(express.logger({stream: logFile}));

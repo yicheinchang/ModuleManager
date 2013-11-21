@@ -1,108 +1,91 @@
 #!/bin/bash
 
-NAME=METAD
-SOURCE_DIR=/opt/metad
-SOURCE_FILE=metad.js
+module_name=$2
 
-PIDFILE=/var/run/$NAME.pid
-LOGFILE=/var/log/$NAME.log
+SOURCE_DIR=/raid/data/module/$module_name/bin/Web_UI
+SOURCE_FILE=app.js
+
+pidfile=/var/run/$module_name.pid
+logfile=/var/log/$module_name.log
 
 RETVAL=0
 
 start() {
-    if [ "$foreverid" == "" ]; then
-        touch $LOGFILE
-        touch $PIDFILE
+  echo "Starting $module_name node instance: "
+  if [ "$foreverid" == "" ]; then
+    # Create the log and pid files
+    touch $logfile
+    touch $pidfile
         
-        echo "Starting $NAME node instance: $SOURCE_FILE"
-        
-        forever start \
+    forever start \
             -a -s \
-            -l $LOGFILE \
-            --pidFile $PIDFILE \
+            -l $logfile \
+            --pidFile $pidfile \
             --sourceDir $SOURCE_DIR \
             $SOURCE_FILE > /dev/null
         
-        RETVAL=$?
-    else
-        echo -n "Starting $NAME node instance: "
-        echo "Instance already running"
-        RETVAL=0
-    fi
+    RETVAL=$?
+  else
+    echo "Instance already running"
+    RETVAL=0
+  fi
 }
  
 stop() {
-    echo -n "Shutting down $NAME node instance: "
-    if [ "$foreverid" != "" ]; then
-        echo ""
-        forever stop $foreverid | grep -E "($LOGFILE)|(uptime)"
-    else
-        echo "Instance is not running";
-    fi
-    RETVAL=$?
+  echo -n "Shutting down $module_name node instance: "
+  if [ "$foreverid" != "" ]; then
+    forever stop $foreverid
+  else
+    echo "Instance is not running";
+  fi
+  RETVAL=$?
 }
 
 restart() {
-    if [ "$foreverid" != "" ]; then
-        echo "Restart $NAME node instance: "
-        forever restart $foreverid > /dev/null
-        status
-    else
-        start
-        status
-    fi
+  if [ "$foreverid" != "" ]; then
+    echo "Restart $module_name node instance: "
+    forever restart $foreverid > /dev/null
+    status
+  else
+    start
+    status
+  fi
     RETVAL=$?
 }
 
 status() {
-    forever list | grep -E "($LOGFILE)|(uptime)"
+  forever list | grep -E "($logfile)|(uptime)"
 }
 
-read_pid() {
-    if [ -f $PIDFILE ]; then
-        read pid < $PIDFILE
-    else
-        pid=""
-    fi
-    
-    if [ "$pid" != "" ]; then
-        sed="s/.*\[\([0-9]\+\)\].*/\1/g"
-        foreverid=`forever list | grep $LOGFILE | sed $sed`
-    else
-        foreverid=""
-    fi
-}
+# read pid and foreverid
+if [ -f $pidfile ]; then
+  read pid < $pidfile
+else
+  pid=""
+fi
+if [ "$pid" != "" ]; then
+  sed="s/.*\[\([0-9]\+\)\].*/\1/g"
+  foreverid=`forever list | grep $logfile | sed $sed`
+else
+  foreverid=""
+fi
  
 case "$1" in
-    boot|start)
-        read_pid
-        start
-        status
-        ;;
-    stop)
-        case "$SYS_ACTION" in
-            SHUTDOWN|REBOOT|FORCE)
-                read_pid
-                stop
-                ;;
-            *)
-                ;;
-         esac
-        ;;
-    forcestop)
-        read_pid
-        stop
-        ;;
-    restart)
-        read_pid
-        restart
-        ;;
-    status)
-        status
-        ;;
-    *)
-        echo "Usage:  {boot|start|stop|forcestop|restart|status}"
-        exit 1
-        ;;
+  boot|start)
+    start
+    status
+  ;;
+  stop)
+    stop
+  ;;
+  restart)
+    restart
+  ;;
+  status)
+    status
+  ;;
+  *)
+    echo "Usage: $module_name {start module_name|stop module_name}"
+    exit 1
 esac
 exit $RETVAL
