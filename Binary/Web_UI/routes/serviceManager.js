@@ -1,15 +1,12 @@
 var exec=require('child_process').exec;
 var Convert = require('ansi-to-html');
 
-/*
- * GET home page.
- */
-
 exports.action = function(req, res){
   var path=req.body.module_path;
   var act=req.body.module_action;
-  var cmd=path +'/shell/module.rc ' + act;
-  //res.send("Success:" + cmd);
+  path=path.replace(/'/g, '\\\'\'');
+  act=act.replace(/'/g, '\\\'\'');
+  var cmd='\'' + path +'/shell/module.rc\' \'' + act + '\'';
   var br='<br />';
   var child=exec(cmd,function(err, stdout, stderr){
     if(err || stderr){
