@@ -5,7 +5,7 @@ exports.index = function(req, res){
     showModules(req, res);
   }else if(req.body.username && req.body.passwd){
     if(req.body.username == 'admin' && req.body.passwd != '' ){
-      var pwd=req.body.passwd.replace(/'/g, '\\\'\'');
+      var pwd=req.body.passwd.replace(/'/g, '\'\\\'\'');
       var shadow='/etc/shadow';
       cmd='openssl passwd -1 -salt $(grep root ' + shadow + ' | cut -f2 -d\':\'|cut -f3 -d\'$\') \'' + pwd + '\' | grep -f - ' + shadow + ' | grep root -c';
       var child=exec(cmd, function(err, stdout, stderr){
